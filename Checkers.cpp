@@ -181,6 +181,236 @@ bool further_capture(int board[8][8], int x, int y){
     return 0;
 }
 
+void commit_move(tree* node, motion move){
+	// we cannot directly change game state as it is not a pointer (any change in this function would not affect outside this function)
+	// so we need a pointer and this is a tree node
+    int pawn_class = node->state.board[move.x1][move.y1];
+    node->state.board[move.x1][move.y1] = 0;
+
+    if(!node->state.chance){
+        int difference = abs(move.y1-move.y2);
+        if(difference == 2){
+            int avg_x = (move.x1 + move.x2)/2;
+            int avg_y = (move.y1 + move.y2)/2;
+            node->state.board[avg_x][avg_y] = 0;
+            if(move.x2 == 7){
+                node->state.board[move.x2][move.y2] = pawn_class;
+            }else{
+                node->state.board[move.x2][move.y2] = pawn_class;
+            }
+            if(further_capture(node->state.board, move.x2, move.y2)){
+                node->state.forced_capture[0] = move.x2;
+                node->state.forced_capture[1] = move.y2;
+				node->state.chance = 0;
+            }else{
+				node->state.forced_capture[0] = -1;
+				node->state.forced_capture[1] = -1;				
+                node->state.chance = 1;
+            }
+        } else if(difference == 1){
+            if(move.x2 == 7){
+                node->state.board[move.x2][move.y2] = pawn_class;
+            }else{
+                node->state.board[move.x2][move.y2] = pawn_class;
+            }
+            node->state.chance = 1;
+			node->state.forced_capture[0] = -1;
+			node->state.forced_capture[1] = -1;		
+        }
+        else{
+            printf("INVALID!");
+        }
+    }else{
+        int difference = abs(move.y1-move.y2);
+        if(difference == 2){
+            int avg_x = (move.x1 + move.x2)/2;
+            int avg_y = (move.y1 + move.y2)/2;
+            node->state.board[avg_x][avg_y] = 0;
+            if(move.x2 == 0){
+                node->state.board[move.x2][move.y2] = pawn_class;
+            }else{
+                node->state.board[move.x2][move.y2] = pawn_class;
+            }
+            if(further_capture(node->state.board, move.x2, move.y2)){
+                node->state.forced_capture[0] = move.x2;
+                node->state.forced_capture[1] = move.y2;
+				node->state.chance = 1;
+            }else{
+				node->state.forced_capture[0] = -1;
+				node->state.forced_capture[1] = -1;		
+                node->state.chance = 0;
+            }
+        }
+        else if(difference == 1){
+            if(move.x2 == 0){
+                node->state.board[move.x2][move.y2] = pawn_class;
+            }else{
+                node->state.board[move.x2][move.y2] = pawn_class;
+            }
+            node->state.chance = 0;
+			node->state.forced_capture[0] = -1;
+			node->state.forced_capture[1] = -1;		
+        }else{
+            printf("INVALID!");
+        }
+    }
+}
+
+/*int pawn_num(tree* node, int pawn_class){
+    //keeps a check on the numbers of different pawn classes
+    int white_npawn = 0;
+    int black_npawn = 0;
+    int white_kpawn = 0;
+    int black_kpawn = 0;
+    for(int i = 0; i<8 ; i++){
+        for(int j = 0; j<8; j++){
+            if(node->state.board[i][j] == 1){
+                white_npawn += 1;
+            }
+            else if(node->state.board[i][j] == 2){
+                black_npawn += 1;
+            }
+            else if(node->state.board[i][j] == 3){
+                white_kpawn += 1;
+            }
+            else if(node->state.board[i][j] == 4){
+                black_kpawn += 1;
+            }
+        }
+    }
+
+    if(pawn_class == 1){
+        return white_npawn;
+    }
+    else if(pawn_class == 2){
+        return black_npawn;
+    }
+    else if(pawn_class == 3){
+        return white_kpawn;
+    }
+    else if(pawn_class == 4){
+        return black_kpawn;
+    }
+}*/
+
+bool in(motion* valid_moves, int size, int x1, int y1, int x2, int y2){
+	for (int i=0; i<size; i++){
+		if (valid_moves[i].x1 == x1 && valid_moves[i].y1 == y1 && valid_moves[i].x2 == x2 && valid_moves[i].y2 == y2) return 1;
+	}
+	return 0;
+}
+
+bool in_start(motion* valid_moves, int size, int x1, int y1){
+	for (int i=0; i<size; i++){
+		if (valid_moves[i].x1 == x1 && valid_moves[i].y1 == y1) return 1;
+	}
+	return 0;
+}
+
+int allcaptures(tree* node, motion* capture){
+	int count = 0;
+	for (int x=0; x<8; x++){
+		for (int y=0; y<8; y++){
+			int pawn_class = node->state.board[x][y];
+			if (node->state.chance){
+				// black to move
+				if (pawn_class == 2){
+					if(node->state.board[x-2][y-2] == 0 && x-2>=0 && y-2>=0 && (node->state.board[x-1][y-1] == 1 || node->state.board[x-1][y-1] == 3)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x-2;
+						capture[count].y2 = y-2;
+						count++;
+					}
+					if(node->state.board[x-2][y+2] == 0 && x-2>=0 && y+2<=7 && (node->state.board[x-1][y+1] == 1 || node->state.board[x-1][y+1] == 3)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x-2;
+						capture[count].y2 = y+2;
+						count++;
+					}
+				} else if (pawn_class == 4){
+					if(node->state.board[x+2][y-2] == 0 && x+2<=7 && y-2>=0 && (node->state.board[x+1][y-1] == 1 || node->state.board[x+1][y-1] == 3)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x+2;
+						capture[count].y2 = y-2;
+						count++;
+					}
+					if(node->state.board[x+2][y+2] == 0 && x+2<=7 && y+2<=7 && (node->state.board[x+1][y+1] == 1 || node->state.board[x+1][y+1] == 3)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x+2;
+						capture[count].y2 = y+2;
+						count++;
+					}
+					if(node->state.board[x-2][y-2] == 0 && x-2>=0 && y-2>=0 && (node->state.board[x-1][y-1] == 1 || node->state.board[x-1][y-1] == 3)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x-2;
+						capture[count].y2 = y-2;
+						count++;
+					}
+					if(node->state.board[x-2][y+2] == 0 && x-2>=0 && y+2<=7 && (node->state.board[x-1][y+1] == 1 || node->state.board[x-1][y+1] == 3)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x-2;
+						capture[count].y2 = y+2;
+						count++;
+					}
+				}
+			} else {
+				// white to move
+				if (pawn_class == 1){
+					if(node->state.board[x+2][y-2] == 0 && x+2<=7 && y-2>=0 && (node->state.board[x+1][y-1] == 2 || node->state.board[x+1][y-1] == 4)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x+2;
+						capture[count].y2 = y-2;
+						count++;
+					}
+					if(node->state.board[x+2][y+2] == 0 && x+2<=7 && y+2<=7 && (node->state.board[x+1][y+1] == 2 || node->state.board[x+1][y+1] == 4)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x+2;
+						capture[count].y2 = y+2;
+						count++;
+					}
+				} else if (pawn_class == 3){
+					if(node->state.board[x+2][y-2] == 0 && x+2<=7 && y-2>=0 && (node->state.board[x+1][y-1] == 2 || node->state.board[x+1][y-1] == 4)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x+2;
+						capture[count].y2 = y-2;
+						count++;
+					}
+					if(node->state.board[x+2][y+2] == 0 && x+2<=7 && y+2<=7 && (node->state.board[x+1][y+1] == 2 || node->state.board[x+1][y+1] == 4)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x+2;
+						capture[count].y2 = y+2;
+						count++;
+					}
+					if(node->state.board[x-2][y-2] == 0 && x-2>=0 && y-2>=0 && (node->state.board[x-1][y-1] == 2 || node->state.board[x-1][y-1] == 4)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x-2;
+						capture[count].y2 = y-2;
+						count++;
+					}
+					if(node->state.board[x-2][y+2] == 0 && x-2>=0 && y+2<=7 && (node->state.board[x-1][y+1] == 2 || node->state.board[x-1][y+1] == 4)){
+						capture[count].x1 = x;
+						capture[count].y1 = y;
+						capture[count].x2 = x-2;
+						capture[count].y2 = y+2;
+						count++;
+					}
+				}
+			}
+		}
+	}
+	return count;
+}
 
 int main(){
 
