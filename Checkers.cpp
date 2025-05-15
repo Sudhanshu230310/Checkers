@@ -412,6 +412,228 @@ int allcaptures(tree* node, motion* capture){
 	return count;
 }
 
+motion *get_valid_moves(tree* node, int x, int y){
+    //this function returns the array of valid moves corresponding to a pawn
+    //x and y are used to represnt the pawn location in the board
+
+    //1. creating an array 
+    
+    motion* valid_moves = (motion*)malloc(Max_Move*sizeof(motion));
+
+    for(int i = 0; i<Max_Move; i++){
+        //assigning valid moves to -1 so that we can find the end of the array
+        valid_moves[i].x1 = x;
+        valid_moves[i].y1 = y;
+        valid_moves[i].x2 = -1;
+        valid_moves[i].y2 = -1;
+    }
+
+    //2. checking valid moves
+    int count = 0;
+
+	int *arr = node->state.forced_capture;
+	motion* capture = (motion*)malloc(Max_Move*sizeof(motion)); // these are also captures but not included in forced capture because they are not further capture
+	int capture_size = allcaptures(node, capture);
+	
+	if (arr[0] != -1 || arr[1] != -1){
+		// we have arr[0] and arr[1] as x1 and y1
+		if (x == arr[0] && y == arr[1]){
+			int pawn_class = node->state.board[x][y];
+			if (pawn_class == 1){
+				if(node->state.board[x+2][y-2] == 0 && x+2<=7 && y-2>=0 && (node->state.board[x+1][y-1] == 2 || node->state.board[x+1][y-1] == 4)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x+2;
+					valid_moves[count].y2 = y-2;
+					count++;
+				}
+				if(node->state.board[x+2][y+2] == 0 && x+2<=7 && y+2<=7 && (node->state.board[x+1][y+1] == 2 || node->state.board[x+1][y+1] == 4)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x+2;
+					valid_moves[count].y2 = y+2;
+					count++;
+				}
+			} else if (pawn_class == 2){
+				if(node->state.board[x-2][y-2] == 0 && x-2>=0 && y-2>=0 && (node->state.board[x-1][y-1] == 1 || node->state.board[x-1][y-1] == 3)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x-2;
+					valid_moves[count].y2 = y-2;
+					count++;
+				}
+				if(node->state.board[x-2][y+2] == 0 && x-2>=0 && y+2<=7 && (node->state.board[x-1][y+1] == 1 || node->state.board[x-1][y+1] == 3)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x-2;
+					valid_moves[count].y2 = y+2;
+					count++;
+				}
+			} else if (pawn_class == 3){
+				if(node->state.board[x+2][y-2] == 0 && x+2<=7 && y-2>=0 && (node->state.board[x+1][y-1] == 2 || node->state.board[x+1][y-1] == 4)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x+2;
+					valid_moves[count].y2 = y-2;
+					count++;
+				}
+				if(node->state.board[x+2][y+2] == 0 && x+2<=7 && y+2<=7 && (node->state.board[x+1][y+1] == 2 || node->state.board[x+1][y+1] == 4)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x+2;
+					valid_moves[count].y2 = y+2;
+					count++;
+				}
+				if(node->state.board[x-2][y-2] == 0 && x-2>=0 && y-2>=0 && (node->state.board[x-1][y-1] == 2 || node->state.board[x-1][y-1] == 4)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x-2;
+					valid_moves[count].y2 = y-2;
+					count++;
+				}
+				if(node->state.board[x-2][y+2] == 0 && x-2>=0 && y+2<=7 && (node->state.board[x-1][y+1] == 2 || node->state.board[x-1][y+1] == 4)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x-2;
+					valid_moves[count].y2 = y+2;
+					count++;
+				}
+			} else if (pawn_class == 4){
+				if(node->state.board[x+2][y-2] == 0 && x+2<=7 && y-2>=0 && (node->state.board[x+1][y-1] == 1 || node->state.board[x+1][y-1] == 3)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x+2;
+					valid_moves[count].y2 = y-2;
+					count++;
+				}
+				if(node->state.board[x+2][y+2] == 0 && x+2<=7 && y+2<=7 && (node->state.board[x+1][y+1] == 1 || node->state.board[x+1][y+1] == 3)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x+2;
+					valid_moves[count].y2 = y+2;
+					count++;
+				}
+				if(node->state.board[x-2][y-2] == 0 && x-2>=0 && y-2>=0 && (node->state.board[x-1][y-1] == 1 || node->state.board[x-1][y-1] == 3)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x-2;
+					valid_moves[count].y2 = y-2;
+					count++;
+				}
+				if(node->state.board[x-2][y+2] == 0 && x-2>=0 && y+2<=7 && (node->state.board[x-1][y+1] == 1 || node->state.board[x-1][y+1] == 3)){
+					valid_moves[count].x1 = x;
+					valid_moves[count].y1 = y;
+					valid_moves[count].x2 = x-2;
+					valid_moves[count].y2 = y+2;
+					count++;
+				}
+			}
+		} else {
+			// the position passed is not coinciding with forced capture hence return 0 valid_moves
+		}
+		
+	} else if (capture_size == 0 && arr[0] == -1 && arr[1] == -1){
+		//a. Checking the neighbouring places of the pawn class to be a vacant place for it to be a valid move
+		int pawn_class = node->state.board[x][y];
+		if(pawn_class == 1){
+			if(node->state.board[x+1][y-1] == 0 && x+1<=7 && y-1>=0){
+				valid_moves[count].x2 = x+1;
+				valid_moves[count].y2 = y-1;
+				count++;
+			}
+			if(node->state.board[x+1][y+1] == 0 && x+1<=7 && y+1<=7){
+				valid_moves[count].x2 = x+1;
+				valid_moves[count].y2 = y+1;
+				count++;
+			}
+		}
+		else if(pawn_class == 3){
+			if(node->state.board[x+1][y-1] == 0 && x+1<=7 && y-1>=0){
+				valid_moves[count].x2 = x+1;
+				valid_moves[count].y2 = y-1;
+				count++;
+			}
+			if(node->state.board[x+1][y+1] == 0 && x+1<=7 && y+1<=7){
+				valid_moves[count].x2 = x+1;
+				valid_moves[count].y2 = y+1;
+				count++;
+			}
+			if(node->state.board[x-1][y-1] == 0 && x-1>=0 && y-1>=0){
+				valid_moves[count].x2 = x-1;
+				valid_moves[count].y2 = y-1;
+				count++;
+			}
+			if(node->state.board[x-1][y+1] == 0 && x-1>=0 && y+1<=7){
+				valid_moves[count].x2 = x-1;
+				valid_moves[count].y2 = y+1;
+				count++;
+			}
+		}
+		else if(pawn_class == 2){
+			if(node->state.board[x-1][y-1] == 0 && x-1>=0 && y-1>=0){
+				valid_moves[count].x2 = x-1;
+				valid_moves[count].y2 = y-1;
+				count++;
+			}
+			if(node->state.board[x-1][y+1] == 0 && x-1>=0 && y+1<=7){
+				valid_moves[count].x2 = x-1;
+				valid_moves[count].y2 = y+1;
+				count++;
+			}
+		}
+		else if(pawn_class == 4){
+			if(node->state.board[x-1][y-1] == 0 && x-1>=0 && y-1>=0){
+				valid_moves[count].x2 = x-1;
+				valid_moves[count].y2 = y-1;
+				count++;
+			}
+			if(node->state.board[x-1][y+1] == 0 && x-1>=0 && y+1<=7){
+				valid_moves[count].x2 = x-1;
+				valid_moves[count].y2 = y+1;
+				count++;
+			}
+			if(node->state.board[x+1][y-1] == 0 && x+1<=7 && y-1>=0){
+				valid_moves[count].x2 = x+1;
+				valid_moves[count].y2 = y-1;
+				count++;
+			}
+			if(node->state.board[x+1][y+1] == 0 && x+1<=7 && y+1<=7){
+				valid_moves[count].x2 = x+1;
+				valid_moves[count].y2 = y+1;
+				count++;
+			}
+		}
+		
+	} else {
+		for (int i=0; i<capture_size; i++){
+			if (capture[i].x1 == x && capture[i].y1 == y){
+				valid_moves[count].x2 = capture[i].x2;
+				valid_moves[count].y2 = capture[i].y2;
+				count++;
+			}
+		}
+	}
+    
+	valid_moves[count].x2 = -1;
+	valid_moves[count].y2 = -1;
+	free(capture);
+    return valid_moves;
+}
+
+int count_valid_moves(tree* node, int x, int y){
+    motion* valid_moves = get_valid_moves(node, x, y);
+    int count = 0;
+    for(int i = 0; i < Max_Move; i++){
+        if(valid_moves[i].x2 == -1 && valid_moves[i].y2 == -1){
+            break;
+        }
+        count++;
+    }
+	free(valid_moves);
+    return count;
+}
+
+
 int main(){
 
 }
