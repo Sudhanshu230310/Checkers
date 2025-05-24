@@ -633,6 +633,346 @@ int count_valid_moves(tree* node, int x, int y){
     return count;
 }
 
+motion *total_get_valid_moves(tree* node){
+    motion* total_valid_moves = (motion*)malloc(100*sizeof(motion)); //stores the total valid moves 
+    int count = 0; //just like ith position of the array
+    for(int i = 0; i<8 ; i++){
+        for(int j = 0; j<8; j++){
+			if (node->state.chance){
+				if(node->state.board[i][j] == 2){
+					total_valid_moves[count].x1 = i;
+					total_valid_moves[count].y1 = j;
+					motion* valid_moves = get_valid_moves(node,i, j);
+					int moves = count_valid_moves(node, i, j);
+					for(int k = 0; k<moves; k++){
+						total_valid_moves[count].x1 = i;
+						total_valid_moves[count].y1 = j;
+						total_valid_moves[count].x2 = valid_moves[k].x2;
+						total_valid_moves[count].y2 = valid_moves[k].y2;
+						count++;
+					}
+					free(valid_moves);
+				} else if(node->state.board[i][j] == 4){
+					total_valid_moves[count].x1 = i;
+					total_valid_moves[count].y1 = j;
+					motion* valid_moves = get_valid_moves(node,i, j);
+					int moves = count_valid_moves(node, i, j);
+					for(int k = 0; k<moves; k++){
+						total_valid_moves[count].x1 = i;
+						total_valid_moves[count].y1 = j;
+						total_valid_moves[count].x2 = valid_moves[k].x2;
+						total_valid_moves[count].y2 = valid_moves[k].y2;
+						count++;
+					}
+					free(valid_moves);
+				}
+			} else {
+				if(node->state.board[i][j] == 1){
+					motion* valid_moves = get_valid_moves(node,i, j);
+					int moves = count_valid_moves(node, i, j);
+					for(int k = 0; k<moves; k++){
+						total_valid_moves[count].x1 = i;
+						total_valid_moves[count].y1 = j;
+						total_valid_moves[count].x2 = valid_moves[k].x2;
+						total_valid_moves[count].y2 = valid_moves[k].y2;
+						count++;
+					}
+					free(valid_moves);
+				} else if(node->state.board[i][j] == 3){
+					total_valid_moves[count].x1 = i;
+					total_valid_moves[count].y1 = j;
+					motion* valid_moves = get_valid_moves(node,i, j);
+					int moves = count_valid_moves(node, i, j);
+					for(int k = 0; k<moves; k++){
+						total_valid_moves[count].x1 = i;
+						total_valid_moves[count].y1 = j;
+						total_valid_moves[count].x2 = valid_moves[k].x2;
+						total_valid_moves[count].y2 = valid_moves[k].y2;
+						count++;
+					}
+					free(valid_moves);
+				} 
+			}
+        }
+    }
+    return total_valid_moves;
+}
+
+int total_count_valid_moves(tree* node){
+    int total_white_moves = 0;
+    int total_black_moves = 0;
+
+    for(int i = 0; i<8 ; i++){
+        for(int j = 0; j<8; j++){
+            if(node->state.board[i][j] == 1){
+                total_white_moves += count_valid_moves(node, i, j);
+            }
+            else if(node->state.board[i][j] == 2){
+                total_black_moves += count_valid_moves(node, i, j);
+            }
+            else if(node->state.board[i][j] == 3){
+                total_white_moves += count_valid_moves(node, i, j);
+            }
+            else if(node->state.board[i][j] == 4){
+                total_black_moves += count_valid_moves(node, i, j);
+            }
+        }
+    }
+
+	if (node->state.chance){
+		return total_black_moves;
+	} else {
+		return total_white_moves;
+	}
+}
+
+int static_value(tree* node){
+    // +infi represents if white wins the match
+    // -infi represents if black wins the match
+    // 0 neither white nor black is winning
+    // [1, infi) represents if white is winning 1 being the lowest possibility and increasing form then on
+    // (-infi, -1] represents if black is winning -1 being the lowest possibility and increasing form then on
+
+    int win_var  = 0; //keeps a check on the possibility of win of either white or black, positive value of win_var means that white is winning and negative value means that black is winning
+
+    int white_npawn = 0;    //number of white n pawns
+    int black_npawn = 0;    //number of black n pawns
+    int white_kpawn = 0;    //number of white k pawns
+    int black_kpawn = 0;    //number of black k pawns
+
+    int total_white_moves = 0;  //keeps a check on the total number of moves available for white 
+    int total_black_moves = 0;  //keeps a check on the total number of moves available for black
+	
+	if (node->state.chance){
+		total_black_moves = total_count_valid_moves(node);
+	} else {
+		total_white_moves = total_count_valid_moves(node);
+	}
+
+    //counting the no of pieces and the total number of moves by either black or white
+    for(int i = 0; i<8 ; i++){
+        for(int j = 0; j<8; j++){
+            if(node->state.board[i][j] == 1){
+                white_npawn += 1;
+            }
+            else if(node->state.board[i][j] == 2){
+                black_npawn += 1;
+            }
+            else if(node->state.board[i][j] == 3){
+                white_kpawn += 1;
+            }
+            else if(node->state.board[i][j] == 4){
+                black_kpawn += 1;
+            }
+        }
+    }
+
+    //1. Checking the clear cut winner
+
+    //a. No pawn left
+    if(white_npawn != 0){
+        if(black_npawn == 0){
+            if(black_kpawn == 0){
+                win_var = infi; // white is the clear cut winner
+                return win_var;
+            }
+        }
+        else if(black_kpawn != 0){
+            if(white_npawn == 0){
+                if(white_kpawn == 0){
+                    win_var = -1*infi; // black is the clear cut winner
+                    return win_var;
+                }
+            }
+        }
+    }
+
+    //b no place to move
+	if (node->state.chance){
+		// black to move
+		if(total_black_moves == 0){
+			win_var = infi;
+			return win_var;
+		}
+	} else {
+		if(total_white_moves == 0){
+			win_var = -1*infi;
+			return win_var;
+		}
+	}
+
+    if((white_npawn<=12 && white_npawn>8) || (black_npawn<=12 && black_npawn>8)){
+        //start game 
+        int npawn_val = 100;  //n pawn has a piece value of 100
+        int kpawn_val = 200;  //k pawn has a piece value of 200
+		
+		win_var += (white_npawn - black_npawn) * npawn_val;
+		win_var += (white_kpawn - black_kpawn) * kpawn_val;
+
+        //a
+        int bonus = 0; 
+        //pieces get point for staying in their home row
+        //home row for white is first row 
+        //home row for black is last row
+
+        for(int j = 1; j<=7; j = j + 2){
+            if(node->state.board[0][j] == 1 || node->state.board[0][j] == 3){
+                bonus += 5;
+            }
+            if(node->state.board[7][j-1] == 2 || node->state.board[7][j-1] == 4){
+                bonus -= 5;
+            }
+        }
+        
+        win_var += bonus;
+
+    }
+    else if ((white_npawn<=8 && white_npawn>4) || (black_npawn<=8 && black_npawn>4)){
+        //mid game
+        int npawn_val = 100;  //n pawn has a piece value of 100
+        int kpawn_val = 200;  //k pawn has a piece value of 200
+
+		win_var += (white_npawn - black_npawn) * npawn_val;
+		win_var += (white_kpawn - black_kpawn) * kpawn_val;
+		
+        int bonus = 0; 
+        //pieces get point for staying in the center row
+        //row 3 and 4 is the center row
+        
+        for(int j = 0; j<=7; j = j+ 2){
+            if(node->state.board[3][j] == 1 || node->state.board[3][j] == 3){
+                //3rd row for white
+                bonus += 10;
+            }
+            if(node->state.board[3][j] == 2 || node->state.board[3][j] == 4){
+                //3rd row for black
+                bonus -= 10;
+            }
+            if(node->state.board[4][j+1] == 1 || node->state.board[4][j+1] == 3){
+                //4th row for white
+                bonus += 10;
+            }
+            if(node->state.board[4][j+1] == 2 || node->state.board[4][j+1] == 4){
+                //4th row for black
+                bonus -= 10;
+            }
+        }
+        win_var += bonus;
+
+        bonus = 0;
+        //a. Keeping pieces together will make it harder for the opponent to move
+        for(int i = 1; i<=6; i++){
+            for(int j = 1; j<=6; j++){
+                if(node->state.board[i][j] == 1 || node->state.board[i][j] == 3){
+                    //if white pawns are together
+                    if(node->state.board[i-1][j-1] == 1 || node->state.board[i][j] == 3){
+                        bonus += 5;
+                    }
+                    if(node->state.board[i-1][j+1] == 1 || node->state.board[i][j] == 3){
+                        bonus += 5;
+                    }
+                }
+                else if(node->state.board[i][j] == 2 || node->state.board[i][j] == 4){
+                    //if black pawns are together
+                    if(node->state.board[i+1][j-1] == 2 || node->state.board[i][j] == 4){
+                        bonus -= 5;
+                    }
+                    if(node->state.board[i+1][j+1] == 2 || node->state.board[i][j] == 4){
+                        bonus -= 5;
+                    }
+                }
+            }
+        }
+        win_var += bonus;  
+    }
+    else if ((white_npawn<=4 && white_npawn>=0) || (black_npawn<=4 && black_npawn>=0)){
+        //end game
+        int npawn_val = 100;  //n pawn has a piece value of 100
+        int kpawn_val = 200;  //k pawn has a piece value of 200
+
+		win_var += (white_npawn - black_npawn) * npawn_val;
+		win_var += (white_kpawn - black_kpawn) * kpawn_val;
+		
+        int bonus = 0;
+        //a. Keeping pieces together will make it harder for the opponent to move
+        for(int i = 1; i<=6; i++){
+            for(int j = 1; j<=6; j++){
+                if(node->state.board[i][j] == 1 || node->state.board[i][j] == 3){
+                    //if white pawns are together
+                    if(node->state.board[i-1][j-1] == 1 || node->state.board[i][j] == 3){
+                        bonus += 5;
+                    }
+                    if(node->state.board[i-1][j+1] == 1 || node->state.board[i][j] == 3){
+                        bonus += 5;
+                    }
+                }
+                else if(node->state.board[i][j] == 2 || node->state.board[i][j] == 4){
+                    //if black pawns are together
+                    if(node->state.board[i+1][j-1] == 2 || node->state.board[i][j] == 4){
+                        bonus -= 5;
+                    }
+                    if(node->state.board[i+1][j+1] == 2 || node->state.board[i][j] == 4){
+                        bonus -= 5;
+                    }
+                }
+            }
+        }
+
+		//this will help the ai to defeat the human at the end of the game to reduce the no of moves made by the human
+        if (node->state.chance){
+			if (total_white_moves < 6){
+				// if it is greater than 6 than no effect else
+				bonus += -1*(5 - total_white_moves)*10;
+			}
+		} else {
+			if (total_black_moves < 6){
+				// if it is greater than 6 than no effect else
+				bonus += (5 - total_black_moves)*10;
+			}
+		}
+		
+		// the more the distant the pieces are more difficult is to capture or stalemate
+		int distance = 0; // irrespective from where we are starting
+		int pieces[12][2];
+		int count = 0;
+		// the piece count of white is lower than white should be far away from black piece and vice versa
+		for (int i=0; i<8; i++){
+			for (int j=0; j<8; j++){
+				// storing white pieces in pieces array
+				if (node->state.board[i][j] == 1 || node->state.board[i][j] == 3){
+					pieces[count][0] = i;
+					pieces[count][1] = j;
+					count++;
+				}
+			}
+		}
+		
+		for (int i=0; i<8; i++){
+			for (int j=0; j<8; j++){
+				// storing white pieces in pieces array
+				if (node->state.board[i][j] == 2 || node->state.board[i][j] == 4){
+					for (int k=0; k<count; k++){
+						distance += abs(pieces[k][0]-i) + abs(pieces[k][1]-j);
+					}
+				}
+			}
+		}
+		
+		if (npawn_val*white_npawn + kpawn_val*white_kpawn < npawn_val*black_npawn + kpawn_val*black_kpawn){
+			// as k pawn is worth more than the white pawn
+			// black has more piece 
+			bonus = bonus + distance*7; // each distance is assigned a value of 2
+		} else if (npawn_val*white_npawn + kpawn_val*white_kpawn > npawn_val*black_npawn + kpawn_val*black_kpawn) {
+			bonus = bonus - distance*7;
+		} else {
+			// both have equal material cannot decide
+		}
+		
+        win_var += bonus;
+		
+    }
+    return win_var;
+}
 
 int main(){
 
