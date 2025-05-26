@@ -974,6 +974,308 @@ int static_value(tree* node){
     return win_var;
 }
 
+void gen_moves(tree* node){
+	// it will directly append the move in the child of the node
+	// it not only generates the move but also represent the game state after that move
+	
+	int n = total_count_valid_moves(node); // no of total avaliable moves
+	motion* all_moves = total_get_valid_moves(node); // an array of motion of size n
+	
+	if (n==0){
+		node->child = NULL;
+		node->n = 0;
+		return;
+	}
+	
+	node->child = (tree**)malloc(n*sizeof(tree*));
+	node->n = n;
+	for (int i=0; i<n; i++){
+		// an empty location
+		tree* temp = (tree*)malloc(sizeof(tree));
+		temp->n = 0; // initially setting 0 child of temp
+		temp->child = NULL; // intially setting to NULL after next depth this function would update this child
+		temp->eval = 0; // eval is assigned 0
+		// now assigning the node state to this temp so that after the move it's state has changed
+		temp->move.x1 = all_moves[i].x1;
+		temp->move.x2 = all_moves[i].x2;
+		temp->move.y1 = all_moves[i].y1;
+		temp->move.y2 = all_moves[i].y2;
+		temp->state.chance = node->state.chance;
+		memcpy(&temp->state.forced_capture, &node->state.forced_capture, sizeof(node->state.forced_capture));
+		memcpy(&temp->state.board, &node->state.board, sizeof(node->state.board));
+		commit_move(temp, all_moves[i]); // this would update the game state
+		node->child[i] = temp; // assigning the child
+	}
+	free(all_moves);
+}
+
+int minimax(tree* node, bool ismax, int depth){
+	// instead of using two variables one for the particular depth we want to achieve and our current depth we could use
+	// just variable and recursively pass it as depth--
+	if (depth==0){
+		// base condition
+		// we are at the leaf node
+		minimax_counter++;
+		return static_value(node);
+	}
+	
+	if (ismax){
+		// we are at the maximiser player
+		gen_moves(node); // generate all the possible move for that position
+		// There could be a possibility that there is no possible move i.e. the game ended in the previous depth
+		// If node->child is NULL then it means that either one player definately wins or the game is draw (stalemate case in CHESS)
+		if (node->n == 0){
+			// this could be a draw or a win
+			minimax_counter++; // this variable calculate static calculations so it needs to be incremented
+			return static_value(node); // consider this node to be a leaf node
+		}
+		
+		int max = minimax(node->child[0],!node->child[0]->state.chance,depth-1);
+		for (int i=1; i < node->n; i++){
+			int temp = minimax(node->child[i],!node->child[i]->state.chance,depth-1);
+			if (temp > max){
+				max = temp;
+			}
+		}
+		
+		node->eval = max; // assigning the evaluation to the node helpfull for finding further best moves
+		return max;
+		
+	} else {
+		// we are the minimiser player
+		gen_moves(node); // generate all the possible move for that position
+		// There could be a possibility that there is no possible move i.e. the game ended in the previous depth
+		// If node->child is NULL then it means that either one player definately wins or the game is draw (stalemate case in CHESS)
+		if (node->n == 0){
+			// this could be a draw or a win
+			minimax_counter++; // this variable calculate static calculations so it needs to be incremented
+			return static_value(node); // consider this node to be a leaf node
+		}
+		
+		int min = minimax(node->child[0],!node->child[0]->state.chance,depth-1);
+		for (int i=1; i < node->n; i++){
+			int temp = minimax(node->child[i],!node->child[i]->state.chance,depth-1);
+			if (temp < min){
+				min = temp;
+			}
+		}
+		
+		node->eval = min; // assigning the evaluation to the node helpfull for finding further best moves
+		return min;
+	}
+}
+
+int minimax(tree* node, int depth){
+	// A maximum of 9 depth can be reached in a game like tic-tac-toe
+	if (depth==0){
+		return static_value(node);
+	}
+	
+	if (node->state.chance == 0){
+		// The player to move is O and hence it is the maximising player
+		// we are at the maximiser player
+		gen_moves(node); // generate all the possible move for that position
+		// There could be a possibility that there is no possible move i.e. the game ended in the previous depth
+		// If node->child is NULL then it means that either one player definately wins or the game is draw (stalemate case in CHESS)
+		if (node->n == 0){
+			// this could be a draw or a win
+			minimax_counter++; // this variable calculate static calculations so it needs to be incremented
+			return static_value(node); // consider this node to be a leaf node
+		}
+		
+		int max = minimax(node->child[0],!node->child[0]->state.chance,depth-1);
+		// root node's move will store the best move
+		node->move = node->child[0]->move; // intially this is the best move
+		for (int i=1; i < node->n; i++){
+			int temp = minimax(node->child[i],!node->child[i]->state.chance,depth-1);
+			if (temp > max){
+				max = temp;
+				node->move = node->child[i]->move; // updating the best move
+			}
+		}
+		
+		node->eval = max; // assigning the evaluation to the node helpfull for finding further best moves
+		return max;
+		
+	} else {
+		// The player to move is X and hence it is the minimiser player
+		// we are the minimiser player
+		gen_moves(node); // generate all the possible move for that position
+		// There could be a possibility that there is no possible move i.e. the game ended in the previous depth
+		// If node->child is NULL then it means that either one player definately wins or the game is draw (stalemate case in CHESS)
+		if (node->n == 0){
+			// this could be a draw or a win
+			minimax_counter++; // this variable calculate static calculations so it needs to be incremented
+			return static_value(node); // consider this node to be a leaf node
+		}
+		
+		int min = minimax(node->child[0],!node->child[0]->state.chance,depth-1);
+		node->move = node->child[0]->move; // intially this is the best move
+		for (int i=1; i < node->n; i++){
+			int temp = minimax(node->child[i],!node->child[i]->state.chance,depth-1);
+			if (temp < min){
+				min = temp;
+				node->move = node->child[i]->move;
+			}
+		}
+		
+		node->eval = min; // assigning the evaluation to the node helpfull for finding further best moves
+		return min;
+	}	
+}
+
+int alphabeta(tree* node, bool ismax, int depth, int alpha=-2147483648, int beta=2147483647){
+	// alpha is an integer so its initial value is -2^31 and beta is also an integer so its initial value is 2^31-1
+	if (depth==0){
+		// base condition
+		// we are at the leaf node
+		alphabeta_counter++;
+		int val = static_value(node);
+		if ((val == 5000 && ismax) || (val == -5000 && !ismax)){
+			node->depthover = depth;
+		} else {
+			node->depthover = -1;
+		}
+		return val; // consider this node to be a leaf node
+	}
+	
+	if (ismax){
+		// we are at the maximiser player
+		gen_moves(node); // generate all the possible move for that position
+		// There could be a possibility that there is no possible move i.e. the game ended in the previous depth
+		// If node->child is NULL then it means that either one player definately wins or the game is draw (stalemate case in CHESS)
+		if (node->n == 0){
+			// this could be a draw or a win
+			alphabeta_counter++; // this variable calculate static calculations so it needs to be incremented
+			int val = static_value(node);
+			if (val == -5000){
+				node->depthover = depth;
+			} else {
+				node->depthover = -1;
+			}
+			return val; // consider this node to be a leaf node
+		}
+		
+		/*
+		// node->move does not change
+		while (node->n == 1){
+			// there is only one move now
+			commit_move(node, node->child[0]->move);
+			free(node->child[0]);
+			node->n = 0;
+			node->child = NULL;
+			gen_moves(node);
+		}
+		*/
+		
+		
+		int max = alphabeta(node->child[0],!node->child[0]->state.chance,depth-1,alpha,beta);
+		int	curr_depthover = node->child[0]->depthover;
+
+		if (max > alpha) alpha = max;
+		if (alpha >= beta){
+			// condition for pruning of the tree
+			//node->eval = max; // We are not evaluating node->eval because it can even be greater than max
+			// but whatever it be it would not affect our final answer
+			node->depthover = curr_depthover;
+			return max;
+		}
+		
+		for (int i=1; i < node->n; i++){
+			int temp = alphabeta(node->child[i],!node->child[i]->state.chance,depth-1,alpha,beta);
+			if (node->child[i]->depthover > curr_depthover && temp == 5000){
+				curr_depthover = node->child[i]->depthover;
+			}			
+			if (temp > alpha) alpha = temp;
+			if (temp > max) max = temp;
+			if (alpha >= beta){
+				// condition for pruning of the tree
+				//node->eval = max; // We are not evaluating node->eval because it can even be greater than max
+				// but whatever it be it would not affect our final answer
+				node->depthover = curr_depthover;
+				return max;
+			}
+		}
+		
+		for (int i=0; i<node->n; i++){
+			free_node(node->child[i]);
+			node->n = 0;
+			node->child[i] = NULL;
+		}
+		
+		node->eval = max;
+		node->depthover = curr_depthover;
+		return max; // no pruning of the tree happened
+		
+	} else {
+		// we are at the minimising player
+		gen_moves(node); // generate all the possible move for that position
+		// There could be a possibility that there is no possible move i.e. the game ended in the previous depth
+		// If node->child is NULL then it means that either one player definately wins or the game is draw (stalemate case in CHESS)
+		if (node->n == 0){
+			// this could be a draw or a win
+			alphabeta_counter++; // this variable calculate static calculations so it needs to be incremented
+			int val = static_value(node);
+			if (val == 5000){
+				node->depthover = depth;
+			} else {
+				node->depthover = -1;
+			}
+			return val; // consider this node to be a leaf node
+		}
+		
+		/*
+		// node->move does not change
+		while (node->n == 1){
+			// there is only one move now
+			commit_move(node, node->child[0]->move);
+			free(node->child[0]);
+			node->n = 0;
+			node->child = NULL;
+			gen_moves(node);
+		}
+		*/
+		
+		int min = alphabeta(node->child[0],!node->child[0]->state.chance,depth-1,alpha,beta);
+		int	curr_depthover = node->child[0]->depthover;
+		
+		if (min < beta) beta = min;
+		if (alpha >= beta){
+			// condition for pruning of the tree
+			//node->eval = min; // We are not evaluating node->eval because it can even be lesser than min
+			// but whatever it be it would not affect our final answer
+			node->depthover = curr_depthover;
+			return min;
+		}
+		
+		for (int i=1; i < node->n; i++){
+			int temp = alphabeta(node->child[i],!node->child[i]->state.chance,depth-1,alpha,beta);
+			if (node->child[i]->depthover > curr_depthover && temp == -5000){
+				curr_depthover = node->child[i]->depthover;
+			}
+			if (temp < beta) beta = temp;
+			if (temp < min) min = temp;
+			if (alpha >= beta){
+				// condition for pruning of the tree
+				//node->eval = min; // We are not evaluating node->eval because it can even be lesser than min
+				// but whatever it be it would not affect our final answer
+				node->depthover = curr_depthover;
+				return min;
+			}
+		}
+		
+		for (int i=0; i<node->n; i++){
+			free_node(node->child[i]);
+			node->n = 0;
+			node->child[i] = NULL;
+		}
+		
+		node->eval = min;
+		node->depthover = curr_depthover;
+		return min; // no pruning of the tree happened
+	}
+}
+
 int main(){
 
 }
